@@ -1,0 +1,46 @@
+{
+    "name": "vlotysh/filament-translations",
+    "description": "Excel-like translations manager for Filament 3 with auto-sync from source files",
+    "keywords": [
+        "laravel",
+        "filament",
+        "filament-plugin",
+        "translations",
+        "i18n",
+        "localization",
+        "excel"
+    ],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Vlad Lotysh",
+            "email": "vlad@lotysh.dev",
+            "homepage": "https://github.com/vlotysh"
+        }
+    ],
+    "homepage": "https://github.com/vlotysh/filament-translations",
+    "support": {
+        "issues": "https://github.com/vlotysh/filament-translations/issues",
+        "source": "https://github.com/vlotysh/filament-translations"
+    },
+    "require": {
+        "php": "^8.1",
+        "filament/filament": "^3.0",
+        "illuminate/support": "^10.0|^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Vlotysh\\FilamentTranslations\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Vlotysh\\FilamentTranslations\\FilamentTranslationsServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
