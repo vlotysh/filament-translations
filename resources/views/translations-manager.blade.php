@@ -183,49 +183,49 @@
                             <tbody>
                                 @foreach($groupItems as $key => $item)
                                     @php
-                                        $isMissing = false;
                                         $langCodes = array_keys($languages);
+
+                                        // Build Alpine.js data as PHP
+                                        $alpineProps = [];
+                                        $checkParts = [];
+                                        $saveParts = [];
+                                        $resetParts = [];
+
                                         foreach ($langCodes as $code) {
-                                            if (empty($item[$code])) {
-                                                $isMissing = true;
-                                                break;
-                                            }
+                                            $value = $item[$code] ?? '';
+                                            $jsValue = json_encode($value, JSON_UNESCAPED_UNICODE);
+                                            $alpineProps[] = "{$code}: {$jsValue}";
+                                            $alpineProps[] = "original_{$code}: {$jsValue}";
+                                            $checkParts[] = "(this.{$code} !== this.original_{$code})";
+                                            $saveParts[] = "this.{$code}";
+                                            $resetParts[] = "this.original_{$code} = this.{$code};";
                                         }
-                                        $alpineData = ['changed' => false, 'saving' => false];
-                                        foreach ($langCodes as $code) {
-                                            $alpineData[$code] = $item[$code] ?? '';
-                                            $alpineData["original_{$code}"] = $item[$code] ?? '';
-                                        }
+
+                                        $escapedKey = addslashes($key);
+                                        $alpineJs = '{ '
+                                            . implode(', ', $alpineProps) . ', '
+                                            . 'changed: false, saving: false, '
+                                            . 'checkChanged() { this.changed = ' . implode(' || ', $checkParts) . '; }, '
+                                            . 'async save() { '
+                                                . 'if (!this.changed) return; '
+                                                . 'this.saving = true; '
+                                                . 'await $wire.saveTranslationDirect("' . $escapedKey . '", ' . implode(', ', $saveParts) . '); '
+                                                . implode(' ', $resetParts) . ' '
+                                                . 'this.changed = false; this.saving = false; '
+                                            . '} '
+                                        . '}';
+
+                                        $missingCheck = implode(' || ', array_map(fn($c) => "({$c} === '')", $langCodes));
                                     @endphp
                                     <tr
                                         class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 group"
                                         wire:key="row-{{ $key }}"
-                                        x-data='{
-                                            @foreach($langCodes as $i => $code)
-                                                {{ $code }}: @js($item[$code] ?? ''),
-                                                original_{{ $code }}: @js($item[$code] ?? ''),
-                                            @endforeach
-                                            changed: false,
-                                            saving: false,
-                                            checkChanged() {
-                                                this.changed = @foreach($langCodes as $i => $code)(this.{{ $code }} !== this.original_{{ $code }}){{ $i < count($langCodes) - 1 ? ' || ' : '' }}@endforeach;
-                                            },
-                                            async save() {
-                                                if (!this.changed) return;
-                                                this.saving = true;
-                                                await $wire.saveTranslationDirect("{{ $key }}", @foreach($langCodes as $i => $code)this.{{ $code }}{{ $i < count($langCodes) - 1 ? ', ' : '' }}@endforeach);
-                                                @foreach($langCodes as $code)
-                                                    this.original_{{ $code }} = this.{{ $code }};
-                                                @endforeach
-                                                this.changed = false;
-                                                this.saving = false;
-                                            }
-                                        }'
+                                        x-data="{{ $alpineJs }}"
                                     >
                                         {{-- Key --}}
                                         <td class="py-1 px-3">
                                             <div class="flex items-center gap-2">
-                                                <template x-if="@foreach($langCodes as $i => $code)({{ $code }} === ''){{ $i < count($langCodes) - 1 ? ' || ' : '' }}@endforeach">
+                                                <template x-if="{{ $missingCheck }}">
                                                     <x-filament::icon
                                                         icon="heroicon-s-exclamation-circle"
                                                         class="w-4 h-4 text-danger-500 flex-shrink-0"
@@ -249,10 +249,10 @@
                                                 <input
                                                     type="text"
                                                     x-model="{{ $code }}"
-                                                    @input="checkChanged()"
-                                                    @blur="save()"
-                                                    @keydown.enter="$el.blur()"
-                                                    :class="{
+                                                    x-on:input="checkChanged()"
+                                                    x-on:blur="save()"
+                                                    x-on:keydown.enter="$el.blur()"
+                                                    x-bind:class="{
                                                         'border-danger-300 dark:border-danger-700 bg-danger-50 dark:bg-danger-950': {{ $code }} === '',
                                                         'border-gray-200 dark:border-gray-700': {{ $code }} !== ''
                                                     }"
