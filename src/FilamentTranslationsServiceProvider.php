@@ -30,11 +30,9 @@ class FilamentTranslationsServiceProvider extends ServiceProvider
         // Load views
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'filament-translations');
 
-        // Register commands
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                SyncTranslations::class,
-            ]);
-        }
+        // Register commands (always, so Artisan::call works from web)
+        $this->commands([
+            SyncTranslations::class,
+        ]);
     }
 }
