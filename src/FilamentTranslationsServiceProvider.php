@@ -3,6 +3,8 @@
 namespace Vlotysh\FilamentTranslations;
 
 use Illuminate\Support\ServiceProvider;
+use Vlotysh\FilamentTranslations\Commands\PullTranslations;
+use Vlotysh\FilamentTranslations\Commands\PushTranslations;
 use Vlotysh\FilamentTranslations\Commands\SyncTranslations;
 
 class FilamentTranslationsServiceProvider extends ServiceProvider
@@ -33,6 +35,8 @@ class FilamentTranslationsServiceProvider extends ServiceProvider
         // Register commands (always, so Artisan::call works from web)
         $this->commands([
             SyncTranslations::class,
+            PushTranslations::class,
+            PullTranslations::class,
         ]);
     }
 }

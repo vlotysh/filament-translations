@@ -95,6 +95,28 @@
                     </x-filament::button>
                 @endif
 
+                <x-filament::button
+                    wire:click="pushToS3"
+                    wire:loading.attr="disabled"
+                    color="gray"
+                    size="sm"
+                    icon="heroicon-o-cloud-arrow-up"
+                >
+                    <span wire:loading.remove wire:target="pushToS3">Push to S3</span>
+                    <span wire:loading wire:target="pushToS3">Pushing...</span>
+                </x-filament::button>
+
+                <x-filament::button
+                    wire:click="pullFromS3"
+                    wire:loading.attr="disabled"
+                    color="gray"
+                    size="sm"
+                    icon="heroicon-o-cloud-arrow-down"
+                >
+                    <span wire:loading.remove wire:target="pullFromS3">Pull from S3</span>
+                    <span wire:loading wire:target="pullFromS3">Pulling...</span>
+                </x-filament::button>
+
                 @if($allowAdd)
                     <x-filament::button
                         wire:click="addNewKey"

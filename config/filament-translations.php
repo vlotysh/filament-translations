@@ -83,6 +83,20 @@ return [
     | Enable or disable specific features.
     |
     */
+    /*
+    |--------------------------------------------------------------------------
+    | S3 Sync Settings
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for syncing translations via S3 between environments.
+    | Used by translations:push and translations:pull commands.
+    |
+    */
+    'sync' => [
+        'disk' => env('TRANSLATIONS_SYNC_DISK', 's3'),
+        'path' => 'translations-sync',
+    ],
+
     'features' => [
         // Show sync button (requires scan.paths to be configured)
         'sync_button' => true,

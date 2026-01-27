@@ -15,6 +15,7 @@ Excel-like translations manager for Filament 3 with auto-sync from source files.
 - Configurable languages with flag emojis
 - Add/delete translation keys from UI
 - Statistics dashboard
+- **S3 sync** — push/pull translations between environments via S3
 
 ## Requirements
 
@@ -149,6 +150,16 @@ return [
     | Enable or disable specific features.
     |
     */
+    /*
+    |--------------------------------------------------------------------------
+    | S3 Sync Settings
+    |--------------------------------------------------------------------------
+    */
+    'sync' => [
+        'disk' => env('TRANSLATIONS_SYNC_DISK', 's3'),
+        'path' => 'translations-sync',
+    ],
+
     'features' => [
         'sync_button' => true,    // Show sync button
         'show_stats' => true,     // Show statistics cards
@@ -251,6 +262,79 @@ php artisan translations:sync
 
 Click the "Sync" button in the Translations Manager UI to run the sync command directly from the admin panel.
 
+### Syncing Translations via S3 (Push / Pull)
+
+Push and pull translations between environments (e.g., local dev and production) using an S3 bucket.
+
+#### Configuration
+
+The `sync` section in the config controls the S3 disk and remote path:
+
+```php
+'sync' => [
+    'disk' => env('TRANSLATIONS_SYNC_DISK', 's3'),
+    'path' => 'translations-sync',
+],
+```
+
+Make sure your `s3` disk is configured in `config/filesystems.php`.
+
+#### Push Command
+
+Upload local translation files to S3:
+
+```bash
+# Push all languages
+php artisan translations:push
+
+# Push only Ukrainian
+php artisan translations:push --lang=uk
+```
+
+This uploads each locale JSON file to `translations-sync/{locale}.json` and creates a `_meta.json` with version, timestamp, and environment name.
+
+#### Pull Command
+
+Download translations from S3 and merge with local files:
+
+```bash
+# Merge: local values win, remote-only keys are added
+php artisan translations:pull
+
+# Full overwrite: replace local files with remote
+php artisan translations:pull --force
+
+# Pull only English
+php artisan translations:pull --lang=en
+```
+
+**Merge strategy (default):**
+- Key exists locally — keep local value
+- Key exists only on remote — add it
+- Key exists only locally — keep it
+
+**Force mode (`--force`):**
+- Remote file completely overwrites local file
+
+#### UI Buttons
+
+The Translations Manager toolbar includes **Push to S3** and **Pull from S3** buttons that trigger the same logic as the artisan commands.
+
+#### `_meta.json`
+
+Each push writes a metadata file to S3:
+
+```json
+{
+    "pushed_at": "2026-01-27T22:00:00+00:00",
+    "pushed_from": "production",
+    "version": 5,
+    "languages": ["uk", "en"]
+}
+```
+
+The version auto-increments on each push. The pull command displays this info before downloading.
+
 ### Docker Setup
 
 If your frontend source is in a separate container, mount it to make it accessible:
@@ -325,18 +409,47 @@ Views will be published to `resources/views/vendor/filament-translations/`.
 | `getLocalesPath()` | Returns path to translation files |
 | `getFeature($name)` | Check if feature is enabled |
 | `syncTranslations()` | Run sync command |
+| `pushToS3()` | Push translations to S3 |
+| `pullFromS3()` | Pull translations from S3 (merge) |
 | `saveTranslationDirect($key, ...$values)` | Save translation values |
 | `deleteTranslation($key)` | Delete a translation key |
 | `createTranslation()` | Create new translation from modal |
 
-### SyncTranslations Command
+### Commands
+
+#### `translations:sync`
 
 ```bash
 php artisan translations:sync [--dry-run]
 ```
 
+Scans source files for translation keys and adds missing ones.
+
 Options:
 - `--dry-run` - Show what would be added without making changes
+
+#### `translations:push`
+
+```bash
+php artisan translations:push [--lang=CODE]
+```
+
+Uploads local translation files to S3.
+
+Options:
+- `--lang` - Push only a specific language (e.g., `--lang=uk`)
+
+#### `translations:pull`
+
+```bash
+php artisan translations:pull [--force] [--lang=CODE]
+```
+
+Downloads translations from S3 and merges with local files.
+
+Options:
+- `--force` - Overwrite local files completely (no merge)
+- `--lang` - Pull only a specific language
 
 ## Adding More Languages
 

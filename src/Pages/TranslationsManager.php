@@ -9,6 +9,7 @@ use Filament\Pages\Page;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 
 class TranslationsManager extends Page implements HasForms
 {
@@ -270,6 +271,48 @@ class TranslationsManager extends Page implements HasForms
                 ->info()
                 ->title('All translations are up to date')
                 ->body('No missing keys found.')
+                ->send();
+        }
+    }
+
+    public function pushToS3(): void
+    {
+        $exitCode = Artisan::call('translations:push');
+        $output = Artisan::output();
+
+        if ($exitCode === 0) {
+            Notification::make()
+                ->success()
+                ->title('Pushed to S3')
+                ->body('Translation files uploaded successfully.')
+                ->send();
+        } else {
+            Notification::make()
+                ->danger()
+                ->title('Push failed')
+                ->body($output)
+                ->send();
+        }
+    }
+
+    public function pullFromS3(): void
+    {
+        $exitCode = Artisan::call('translations:pull');
+        $output = Artisan::output();
+
+        if ($exitCode === 0) {
+            $this->loadTranslations();
+
+            Notification::make()
+                ->success()
+                ->title('Pulled from S3')
+                ->body('Translations merged successfully.')
+                ->send();
+        } else {
+            Notification::make()
+                ->danger()
+                ->title('Pull failed')
+                ->body($output)
                 ->send();
         }
     }
