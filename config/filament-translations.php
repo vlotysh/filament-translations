@@ -93,8 +93,8 @@ return [
     |
     */
     'sync' => [
-        'disk' => env('TRANSLATIONS_SYNC_DISK', 's3'),
-        'path' => 'translations-sync',
+        'disk' => env('TRANSLATIONS_SYNC_DISK', 's3-translations'),
+        'path' => env('TRANSLATIONS_SYNC_PATH', 'translations-sync'),
     ],
 
     'features' => [

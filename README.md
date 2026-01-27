@@ -156,8 +156,8 @@ return [
     |--------------------------------------------------------------------------
     */
     'sync' => [
-        'disk' => env('TRANSLATIONS_SYNC_DISK', 's3'),
-        'path' => 'translations-sync',
+        'disk' => env('TRANSLATIONS_SYNC_DISK', 's3-translations'),
+        'path' => env('TRANSLATIONS_SYNC_PATH', 'translations-sync'),
     ],
 
     'features' => [
@@ -272,12 +272,38 @@ The `sync` section in the config controls the S3 disk and remote path:
 
 ```php
 'sync' => [
-    'disk' => env('TRANSLATIONS_SYNC_DISK', 's3'),
-    'path' => 'translations-sync',
+    'disk' => env('TRANSLATIONS_SYNC_DISK', 's3-translations'),
+    'path' => env('TRANSLATIONS_SYNC_PATH', 'translations-sync'),
 ],
 ```
 
-Make sure your `s3` disk is configured in `config/filesystems.php`.
+The package expects an `s3-translations` disk in `config/filesystems.php`. Add it with a fallback to your main S3 credentials:
+
+```php
+// config/filesystems.php
+'s3-translations' => [
+    'driver' => 's3',
+    'key' => env('TRANSLATIONS_SYNC_AWS_KEY', env('AWS_ACCESS_KEY_ID')),
+    'secret' => env('TRANSLATIONS_SYNC_AWS_SECRET', env('AWS_SECRET_ACCESS_KEY')),
+    'region' => env('TRANSLATIONS_SYNC_AWS_REGION', env('AWS_DEFAULT_REGION')),
+    'bucket' => env('TRANSLATIONS_SYNC_AWS_BUCKET', env('AWS_BUCKET')),
+    'throw' => false,
+],
+```
+
+By default it uses the same S3 bucket as your app. To use a separate bucket or AWS account, set the `TRANSLATIONS_SYNC_AWS_*` variables:
+
+```env
+# Optional — only set if you need a separate S3 config
+TRANSLATIONS_SYNC_AWS_KEY=
+TRANSLATIONS_SYNC_AWS_SECRET=
+TRANSLATIONS_SYNC_AWS_REGION=
+TRANSLATIONS_SYNC_AWS_BUCKET=
+
+# Override disk or remote path if needed
+TRANSLATIONS_SYNC_DISK=s3-translations
+TRANSLATIONS_SYNC_PATH=translations-sync
+```
 
 #### Push Command
 
