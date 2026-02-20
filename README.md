@@ -157,7 +157,7 @@ return [
     */
     'sync' => [
         'disk' => env('TRANSLATIONS_SYNC_DISK', 's3-translations'),
-        'path' => env('TRANSLATIONS_SYNC_PATH', 'translations-sync'),
+        'path' => env('TRANSLATIONS_SYNC_PATH', 'translations'),
     ],
 
     'features' => [
@@ -171,9 +171,31 @@ return [
 
 ## Usage
 
-### Register the Page in Filament Panel
+### Register the Plugin
 
-Add the `TranslationsManager` page to your Filament panel provider:
+Add the plugin to your Filament panel provider:
+
+```php
+// app/Providers/Filament/AdminPanelProvider.php
+
+use Vlotysh\FilamentTranslations\FilamentTranslationsPlugin;
+
+class AdminPanelProvider extends PanelProvider
+{
+    public function panel(Panel $panel): Panel
+    {
+        return $panel
+            ->plugins([
+                FilamentTranslationsPlugin::make(),
+            ])
+            // ... other configuration
+    }
+}
+```
+
+### Alternative: Register the Page Directly
+
+You can also register just the page without the plugin:
 
 ```php
 // app/Providers/Filament/AdminPanelProvider.php
@@ -266,18 +288,9 @@ Click the "Sync" button in the Translations Manager UI to run the sync command d
 
 Push and pull translations between environments (e.g., local dev and production) using an S3 bucket.
 
-#### Configuration
+#### S3 Disk Setup (Required)
 
-The `sync` section in the config controls the S3 disk and remote path:
-
-```php
-'sync' => [
-    'disk' => env('TRANSLATIONS_SYNC_DISK', 's3-translations'),
-    'path' => env('TRANSLATIONS_SYNC_PATH', 'translations-sync'),
-],
-```
-
-The package expects an `s3-translations` disk in `config/filesystems.php`. Add it with a fallback to your main S3 credentials:
+The package requires a dedicated filesystem disk for S3 translations. Add it to `config/filesystems.php`:
 
 ```php
 // config/filesystems.php
@@ -287,14 +300,30 @@ The package expects an `s3-translations` disk in `config/filesystems.php`. Add i
     'secret' => env('TRANSLATIONS_SYNC_AWS_SECRET', env('AWS_SECRET_ACCESS_KEY')),
     'region' => env('TRANSLATIONS_SYNC_AWS_REGION', env('AWS_DEFAULT_REGION')),
     'bucket' => env('TRANSLATIONS_SYNC_AWS_BUCKET', env('AWS_BUCKET')),
-    'throw' => false,
+    'throw' => false, // Important: prevents exceptions on S3 errors
 ],
 ```
 
-By default it uses the same S3 bucket as your app. To use a separate bucket or AWS account, set the `TRANSLATIONS_SYNC_AWS_*` variables:
+**Important notes:**
+- `throw => false` is required to prevent exceptions when S3 is misconfigured or unreachable
+- The `region` must match your S3 bucket's actual region (e.g., `eu-central-1`, `us-east-1`)
+- If using a separate bucket, ensure IAM permissions include `s3:GetObject`, `s3:PutObject`, `s3:ListBucket`
+
+#### Configuration
+
+The `sync` section in the config controls the S3 disk and remote path:
+
+```php
+'sync' => [
+    'disk' => env('TRANSLATIONS_SYNC_DISK', 's3-translations'),
+    'path' => env('TRANSLATIONS_SYNC_PATH', 'translations'),
+],
+```
+
+#### Environment Variables
 
 ```env
-# Optional — only set if you need a separate S3 config
+# Optional — only set if you need a separate S3 config from your main app
 TRANSLATIONS_SYNC_AWS_KEY=
 TRANSLATIONS_SYNC_AWS_SECRET=
 TRANSLATIONS_SYNC_AWS_REGION=
@@ -302,7 +331,7 @@ TRANSLATIONS_SYNC_AWS_BUCKET=
 
 # Override disk or remote path if needed
 TRANSLATIONS_SYNC_DISK=s3-translations
-TRANSLATIONS_SYNC_PATH=translations-sync
+TRANSLATIONS_SYNC_PATH=translations
 ```
 
 #### Push Command

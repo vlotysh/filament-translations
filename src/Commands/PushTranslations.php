@@ -17,7 +17,7 @@ class PushTranslations extends Command
         $localesPath = config('filament-translations.locales_path');
         $languages = config('filament-translations.languages', []);
         $disk = config('filament-translations.sync.disk', 's3');
-        $syncPath = config('filament-translations.sync.path', 'translations-sync');
+        $syncPath = config('filament-translations.sync.path', 'translations');
 
         $storage = Storage::disk($disk);
         $langFilter = $this->option('lang');
@@ -52,9 +52,13 @@ class PushTranslations extends Command
         $metaPath = $syncPath . '/_meta.json';
         $version = 1;
 
-        if ($storage->exists($metaPath)) {
-            $existingMeta = json_decode($storage->get($metaPath), true);
-            $version = ($existingMeta['version'] ?? 0) + 1;
+        try {
+            if ($storage->exists($metaPath)) {
+                $existingMeta = json_decode($storage->get($metaPath), true);
+                $version = ($existingMeta['version'] ?? 0) + 1;
+            }
+        } catch (\Throwable) {
+            // _meta.json not available, start at version 1
         }
 
         $meta = [
@@ -64,8 +68,12 @@ class PushTranslations extends Command
             'languages' => $pushedLanguages,
         ];
 
-        $storage->put($metaPath, json_encode($meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-        $this->info("Updated _meta.json (version {$version})");
+        try {
+            $storage->put($metaPath, json_encode($meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            $this->info("Updated _meta.json (version {$version})");
+        } catch (\Throwable $e) {
+            $this->warn("Could not write _meta.json: {$e->getMessage()}");
+        }
 
         $this->newLine();
         $this->info('Push completed successfully.');
