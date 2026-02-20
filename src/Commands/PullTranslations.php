@@ -18,7 +18,7 @@ class PullTranslations extends Command
         $localesPath = config('filament-translations.locales_path');
         $languages = config('filament-translations.languages', []);
         $disk = config('filament-translations.sync.disk', 's3');
-        $syncPath = config('filament-translations.sync.path', 'translations-sync');
+        $syncPath = config('filament-translations.sync.path', 'translations');
 
         $storage = Storage::disk($disk);
         $langFilter = $this->option('lang');
@@ -26,10 +26,14 @@ class PullTranslations extends Command
 
         // Show meta info if available
         $metaPath = $syncPath . '/_meta.json';
-        if ($storage->exists($metaPath)) {
-            $meta = json_decode($storage->get($metaPath), true);
-            $this->info("Remote: version {$meta['version']}, pushed from {$meta['pushed_from']} at {$meta['pushed_at']}");
-            $this->newLine();
+        try {
+            if ($storage->exists($metaPath)) {
+                $meta = json_decode($storage->get($metaPath), true);
+                $this->info("Remote: version {$meta['version']}, pushed from {$meta['pushed_from']} at {$meta['pushed_at']}");
+                $this->newLine();
+            }
+        } catch (\Throwable) {
+            // _meta.json not available, continue without it
         }
 
         $pulledCount = 0;
@@ -41,12 +45,19 @@ class PullTranslations extends Command
 
             $remotePath = $syncPath . '/' . $code . '.json';
 
-            if (! $storage->exists($remotePath)) {
+            try {
+                $remoteRaw = $storage->get($remotePath);
+            } catch (\Throwable $e) {
+                $this->warn("Remote file not available: {$code}.json ({$e->getMessage()})");
+                continue;
+            }
+
+            if ($remoteRaw === null) {
                 $this->warn("Remote file not found: {$remotePath}");
                 continue;
             }
 
-            $remoteContent = json_decode($storage->get($remotePath), true);
+            $remoteContent = json_decode($remoteRaw, true);
 
             if ($remoteContent === null) {
                 $this->error("Invalid JSON in remote {$code}.json");
