@@ -106,16 +106,26 @@
                     <span wire:loading wire:target="pushToS3">Pushing...</span>
                 </x-filament::button>
 
-                <x-filament::button
-                    wire:click="pullFromS3"
-                    wire:loading.attr="disabled"
-                    color="gray"
-                    size="sm"
-                    icon="heroicon-o-cloud-arrow-down"
-                >
-                    <span wire:loading.remove wire:target="pullFromS3">Pull from S3</span>
-                    <span wire:loading wire:target="pullFromS3">Pulling...</span>
-                </x-filament::button>
+                <div class="flex items-center gap-2">
+                    <x-filament::button
+                        wire:click="pullFromS3"
+                        wire:loading.attr="disabled"
+                        color="gray"
+                        size="sm"
+                        icon="heroicon-o-cloud-arrow-down"
+                    >
+                        <span wire:loading.remove wire:target="pullFromS3">Pull from S3</span>
+                        <span wire:loading wire:target="pullFromS3">Pulling...</span>
+                    </x-filament::button>
+                    <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            wire:model="pullOverwrite"
+                            class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-800"
+                        />
+                        <span>Overwrite</span>
+                    </label>
+                </div>
 
                 @if($allowAdd)
                     <x-filament::button

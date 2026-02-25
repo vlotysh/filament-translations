@@ -19,6 +19,8 @@ class TranslationsManager extends Page implements HasForms
 
     public bool $showOnlyMissing = false;
 
+    public bool $pullOverwrite = false;
+
     public array $translations = [];
 
     public array $expandedGroups = [];
@@ -297,16 +299,25 @@ class TranslationsManager extends Page implements HasForms
 
     public function pullFromS3(): void
     {
-        $exitCode = Artisan::call('translations:pull');
+        $options = [];
+        if ($this->pullOverwrite) {
+            $options['--overwrite'] = true;
+        }
+
+        $exitCode = Artisan::call('translations:pull', $options);
         $output = Artisan::output();
 
         if ($exitCode === 0) {
             $this->loadTranslations();
 
+            $message = $this->pullOverwrite
+                ? 'Translations pulled and overwritten successfully.'
+                : 'Translations merged successfully.';
+
             Notification::make()
                 ->success()
                 ->title('Pulled from S3')
-                ->body('Translations merged successfully.')
+                ->body($message)
                 ->send();
         } else {
             Notification::make()
@@ -315,6 +326,8 @@ class TranslationsManager extends Page implements HasForms
                 ->body($output)
                 ->send();
         }
+
+        $this->pullOverwrite = false;
     }
 
     public function addNewKey(): void

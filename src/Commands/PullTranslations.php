@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 
 class PullTranslations extends Command
 {
-    protected $signature = 'translations:pull {--force : Overwrite local files completely (no merge)} {--lang= : Pull only a specific language}';
+    protected $signature = 'translations:pull {--force : Overwrite local files completely (no merge)} {--overwrite : Overwrite existing keys with remote values} {--lang= : Pull only a specific language}';
 
     protected $description = 'Pull translation files from S3 and merge with local translations';
 
@@ -23,6 +23,7 @@ class PullTranslations extends Command
         $storage = Storage::disk($disk);
         $langFilter = $this->option('lang');
         $force = $this->option('force');
+        $overwrite = $this->option('overwrite');
 
         // Show meta info if available
         $metaPath = $syncPath . '/_meta.json';
@@ -74,17 +75,22 @@ class PullTranslations extends Command
                 );
                 $this->info("Pulled {$code}.json (full overwrite)");
             } else {
-                // Merge: local wins, add remote-only keys
+                // Merge translations
                 $localContent = json_decode(File::get($localFile), true) ?? [];
 
                 $localFlat = Arr::dot($localContent);
                 $remoteFlat = Arr::dot($remoteContent);
 
                 $added = 0;
+                $overwritten = 0;
+
                 foreach ($remoteFlat as $key => $value) {
                     if (! array_key_exists($key, $localFlat)) {
                         $localFlat[$key] = $value;
                         $added++;
+                    } elseif ($overwrite && $localFlat[$key] !== $value) {
+                        $localFlat[$key] = $value;
+                        $overwritten++;
                     }
                 }
 
@@ -102,7 +108,11 @@ class PullTranslations extends Command
                     json_encode($nested, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n"
                 );
 
-                $this->info("Pulled {$code}.json (merged, {$added} new keys added)");
+                if ($overwrite) {
+                    $this->info("Pulled {$code}.json (merged, {$added} new keys added, {$overwritten} keys overwritten)");
+                } else {
+                    $this->info("Pulled {$code}.json (merged, {$added} new keys added)");
+                }
             }
 
             $pulledCount++;
