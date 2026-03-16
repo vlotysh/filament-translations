@@ -19,7 +19,7 @@ class TranslationsManager extends Page implements HasForms
 
     public bool $showOnlyMissing = false;
 
-    public bool $pullOverwrite = false;
+    public bool $pullForce = false;
 
     public array $translations = [];
 
@@ -300,8 +300,8 @@ class TranslationsManager extends Page implements HasForms
     public function pullFromS3(): void
     {
         $options = [];
-        if ($this->pullOverwrite) {
-            $options['--overwrite'] = true;
+        if ($this->pullForce) {
+            $options['--force'] = true;
         }
 
         $exitCode = Artisan::call('translations:pull', $options);
@@ -310,9 +310,9 @@ class TranslationsManager extends Page implements HasForms
         if ($exitCode === 0) {
             $this->loadTranslations();
 
-            $message = $this->pullOverwrite
-                ? 'Translations pulled and overwritten successfully.'
-                : 'Translations merged successfully.';
+            $message = $this->pullForce
+                ? 'Translations pulled, new keys added and existing keys overwritten with remote values.'
+                : 'Translations merged, new keys added and local changes preserved.';
 
             Notification::make()
                 ->success()
@@ -327,7 +327,7 @@ class TranslationsManager extends Page implements HasForms
                 ->send();
         }
 
-        $this->pullOverwrite = false;
+        $this->pullForce = false;
     }
 
     public function addNewKey(): void
